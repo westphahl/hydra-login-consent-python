@@ -15,6 +15,8 @@ from wtforms import (
 )
 from wtforms.validators import DataRequired
 
+from hydra_client import HydraAdmin
+
 
 HYDRA_ADMIN_URL = "http://localhost:4445"
 
@@ -51,73 +53,6 @@ class ConsentForm(FlaskForm):
     remember = BooleanField("remember")
 
 
-class HydraClient:
-    def __init__(self):
-        self._session = None
-
-    @property
-    def session(self):
-        if self._session is None:
-            self._session = requests.Session()
-        return self._session
-
-    def get_login_request(self, challenge):
-        url = f"{HYDRA_ADMIN_URL}/oauth2/auth/requests/login/{challenge}"
-        response = self.session.get(url)
-        response.raise_for_status()
-        return response.json()
-
-    def accept_login_request(
-        self, challenge, subject, remember=False, remember_for=3600
-    ):
-        url = f"{HYDRA_ADMIN_URL}/oauth2/auth/requests/login/{challenge}/accept"
-        data = {"subject": subject, "remember": remember, "remember_for": remember_for}
-        response = self.session.put(url, json=data)
-        response.raise_for_status()
-        return response.json()
-
-    def reject_login_request(self, challenge, error):
-        url = f"{HYDRA_ADMIN_URL}/oauth2/auth/requests/login/{challenge}/reject"
-        data = {"error": error}
-        response = self.session.put(url, json=data)
-        response.raise_for_status()
-        return response.json()
-
-    def get_consent_request(self, challenge):
-        url = f"{HYDRA_ADMIN_URL}/oauth2/auth/requests/consent/{challenge}"
-        response = self.session.get(url)
-        response.raise_for_status()
-        return response.json()
-
-    def accept_consent_request(
-        self,
-        challenge,
-        grant_scope,
-        grant_access_token_audience,
-        session,
-        remember=False,
-        remember_for=3600,
-    ):
-        url = f"{HYDRA_ADMIN_URL}/oauth2/auth/requests/consent/{challenge}/accept"
-        data = {
-            "grant_access_token_audience": grant_access_token_audience,
-            "grant_scope": grant_scope,
-            "remember": remember,
-            "remember_for": remember_for,
-            "session": session,
-        }
-        response = self.session.put(url, json=data)
-        response.raise_for_status()
-        return response.json()
-
-    def reject_consent_request(self, challenge, error):
-        url = f"{HYDRA_ADMIN_URL}/oauth2/auth/requests/consent/{challenge}/reject"
-        data = {"error": error}
-        response = self.session.put(url, json=data)
-        response.raise_for_status()
-        return response.json()
-
-
 class LoginView(View):
 
     methods = "GET", "POST"
@@ -127,41 +62,41 @@ class LoginView(View):
 
     def dispatch_request(self):
         form = LoginForm()
-        hydra = HydraClient()
+        hydra = HydraAdmin(HYDRA_ADMIN_URL)
 
         challenge = request.args.get("login_challenge") or form.challenge.data
         if not challenge:
             abort(400)
 
+        login_request = hydra.login_request(challenge)
         if request.method == "GET":
-            return self.get(hydra, form, challenge)
+            return self.get(login_request, form, challenge)
         elif request.method == "POST":
-            return self.post(hydra, form, challenge)
+            return self.post(login_request, form, challenge)
         abort(405)
 
-    def get(self, hydra, form, challenge):
-        login_request = hydra.get_login_request(challenge)
-        if login_request.get("skip", False):
-            response = hydra.accept_login_request(challenge, login_request.subject)
-            return redirect(response["redirect_to"])
+    def get(self, login_request, form, challenge):
+        if login_request.skip:
+            redirect_to = login_request.accept(subject=login_request.subject)
+            return redirect(redirect_to)
         else:
             form.challenge.data = challenge
         return self.render_form(form)
 
-    def post(self, hydra, form, challenge):
+    def post(self, login_request, form, challenge):
         if form.validate():
             if form.login.data:
                 if form.user.data == "foo@bar.com" and form.password.data == "password":
                     subject = form.user.data
-                    response = hydra.accept_login_request(
-                        challenge, subject=subject, remember=form.remember.data
+                    redirect_to = login_request.accept(
+                        subject=subject, remember=form.remember.data
                     )
                 else:
                     # TODO: show error message
                     return self.render_form(form)
             else:
-                response = hydra.reject_login_request(challenge, "user_decline")
-            return redirect(response["redirect_to"])
+                redirect_to = login_request.reject(error="user_decline")
+            return redirect(redirect_to)
         return self.render_form(form)
 
 
@@ -174,54 +109,59 @@ class ConsentView(View):
 
     def dispatch_request(self):
         form = ConsentForm()
-        hydra = HydraClient()
+        hydra = HydraAdmin(HYDRA_ADMIN_URL)
 
         challenge = request.args.get("consent_challenge") or form.challenge.data
         if not challenge:
             abort(400)
 
-        consent_request = hydra.get_consent_request(challenge)
-        form.requested_scope.choices = [
-            (s, s) for s in consent_request.get("requested_scope", [])
-        ]
+        consent_request = hydra.consent_request(challenge)
+        form.requested_scope.choices = [(s, s) for s in consent_request.requested_scope]
 
         if request.method == "GET":
-            return self.get(hydra, form, challenge, consent_request)
+            return self.get(form, consent_request)
         elif request.method == "POST":
-            return self.post(hydra, form, challenge, consent_request)
+            return self.post(form, consent_request)
         abort(405)
 
-    def get(self, hydra, form, challenge, consent_request):
-        if consent_request.get("skip", False):
-            response = hydra.accept_consent_request(
-                challenge,
-                consent_request.get("requested_scope"),
-                consent_request.get("requested_access_token_audience"),
-                {},
+    def get(self, form, consent_request):
+        if consent_request.skip:
+            redirect_to = consent_request.accept(
+                grant_scope=consent_request.requested_scope,
+                grant_access_token_audience=consent_request.requested_access_token_audience,
             )
-            return redirect(response["redirect_to"])
+            return redirect(redirect_to)
         else:
-            form.challenge.data = challenge
+            form.challenge.data = consent_request.challenge
 
         return self.render_form(
-            form,
-            user=consent_request.get("subject"),
-            client=consent_request.get("client"),
+            form, user=consent_request.subject, client=consent_request.client
         )
 
-    def post(self, hydra, form, challenge, consent_request):
+    def post(self, form, consent_request):
         if form.validate():
             if form.accept.data:
-                response = hydra.accept_consent_request(
-                    challenge,
-                    form.requested_scope.data,
-                    consent_request.get("requested_access_token_audience"),
-                    {},
+                session = {
+                    "access_token": {},
+                    "id_token": {
+                        "sub": "248289761001",
+                        "name": "Jane Doe",
+                        "given_name": "Jane",
+                        "family_name": "Doe",
+                        "preferred_username": "j.doe",
+                        "email": "janedoe@example.com",
+                        "picture": "",
+                    },
+                }
+                redirect_to = consent_request.accept(
+                    grant_scope=form.requested_scope.data,
+                    grant_access_token_audience=consent_request.requested_access_token_audience,
+                    session=session,
                     remember=form.remember.data,
                 )
             else:
-                response = hydra.reject_consent_request(challenge, "user_decline")
-            return redirect(response["redirect_to"])
+                redirect_to = consent_request.accept(error="user_decline")
+            return redirect(redirect_to)
         else:
             # TODO: show error message
             pass
