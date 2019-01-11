@@ -3,7 +3,7 @@ Hydra login/consent provider - Python
 
 This is an example implementation for the User Login and Consent flow of [ORY Hydra](https://www.ory.sh/docs/hydra/) version 1.0.x in Python.
 
-**Requirements: Python >= 3.6**
+**Requirements: Python >= 3.7**
 
 Running locally
 ---------------

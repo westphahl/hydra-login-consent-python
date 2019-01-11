@@ -160,7 +160,7 @@ class ConsentView(View):
                     remember=form.remember.data,
                 )
             else:
-                redirect_to = consent_request.accept(error="user_decline")
+                redirect_to = consent_request.reject(error="user_decline")
             return redirect(redirect_to)
         else:
             # TODO: show error message
