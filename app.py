@@ -118,17 +118,31 @@ class ConsentView(View):
         consent_request = hydra.consent_request(challenge)
         form.requested_scope.choices = [(s, s) for s in consent_request.requested_scope]
 
+        session = {
+            "access_token": {},
+            "id_token": {
+                "sub": "248289761001",
+                "name": "Jane Doe",
+                "given_name": "Jane",
+                "family_name": "Doe",
+                "preferred_username": "j.doe",
+                "email": "janedoe@example.com",
+                "picture": "",
+            },
+        }
+
         if request.method == "GET":
-            return self.get(form, consent_request)
+            return self.get(form, consent_request, session)
         elif request.method == "POST":
-            return self.post(form, consent_request)
+            return self.post(form, consent_request, session)
         abort(405)
 
-    def get(self, form, consent_request):
+    def get(self, form, consent_request, session):
         if consent_request.skip:
             redirect_to = consent_request.accept(
                 grant_scope=consent_request.requested_scope,
                 grant_access_token_audience=consent_request.requested_access_token_audience,
+                session=session,
             )
             return redirect(redirect_to)
         else:
@@ -138,21 +152,9 @@ class ConsentView(View):
             form, user=consent_request.subject, client=consent_request.client
         )
 
-    def post(self, form, consent_request):
+    def post(self, form, consent_request, session):
         if form.validate():
             if form.accept.data:
-                session = {
-                    "access_token": {},
-                    "id_token": {
-                        "sub": "248289761001",
-                        "name": "Jane Doe",
-                        "given_name": "Jane",
-                        "family_name": "Doe",
-                        "preferred_username": "j.doe",
-                        "email": "janedoe@example.com",
-                        "picture": "",
-                    },
-                }
                 redirect_to = consent_request.accept(
                     grant_scope=form.requested_scope.data,
                     grant_access_token_audience=consent_request.requested_access_token_audience,
