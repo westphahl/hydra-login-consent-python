@@ -4,16 +4,37 @@
 #
 #    pip-compile
 #
-certifi==2020.6.20        # via ory-hydra-client
-click==7.1.2              # via flask
-flask-wtf==0.14.3         # via -r requirements.in
-flask==1.1.2              # via -r requirements.in, flask-wtf
-itsdangerous==1.1.0       # via flask, flask-wtf
-jinja2==2.11.2            # via flask
-markupsafe==1.1.1         # via jinja2, wtforms
-ory-hydra-client==1.7.0   # via -r requirements.in
-python-dateutil==2.8.1    # via ory-hydra-client
-six==1.15.0               # via ory-hydra-client, python-dateutil
-urllib3==1.25.10          # via ory-hydra-client
-werkzeug==1.0.1           # via flask
-wtforms==2.3.3            # via flask-wtf
+certifi==2020.6.20
+    # via ory-hydra-client
+click==7.1.2
+    # via flask
+flask-wtf==0.14.3
+    # via -r requirements.in
+flask==1.1.2
+    # via
+    #   -r requirements.in
+    #   flask-wtf
+itsdangerous==1.1.0
+    # via
+    #   flask
+    #   flask-wtf
+jinja2==2.11.3
+    # via flask
+markupsafe==1.1.1
+    # via
+    #   jinja2
+    #   wtforms
+ory-hydra-client==1.7.0
+    # via -r requirements.in
+python-dateutil==2.8.1
+    # via ory-hydra-client
+six==1.15.0
+    # via
+    #   ory-hydra-client
+    #   python-dateutil
+urllib3==1.25.10
+    # via ory-hydra-client
+werkzeug==1.0.1
+    # via flask
+wtforms==2.3.3
+    # via flask-wtf
