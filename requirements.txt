@@ -32,7 +32,7 @@ six==1.15.0
     # via
     #   ory-hydra-client
     #   python-dateutil
-urllib3==1.25.10
+urllib3==1.26.5
     # via ory-hydra-client
 werkzeug==1.0.1
     # via flask
