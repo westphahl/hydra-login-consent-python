@@ -4,16 +4,16 @@
 #
 #    pip-compile
 #
-certifi==2020.6.20
+certifi==2022.12.7
     # via ory-hydra-client
 click==7.1.2
     # via flask
-flask-wtf==0.14.3
-    # via -r requirements.in
 flask==1.1.2
     # via
     #   -r requirements.in
     #   flask-wtf
+flask-wtf==0.14.3
+    # via -r requirements.in
 itsdangerous==1.1.0
     # via
     #   flask
