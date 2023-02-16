@@ -8,21 +8,22 @@ certifi==2020.6.20
     # via ory-hydra-client
 click==7.1.2
     # via flask
-flask-wtf==0.14.3
-    # via -r requirements.in
 flask==1.1.2
     # via
     #   -r requirements.in
     #   flask-wtf
+flask-wtf==0.14.3
+    # via -r requirements.in
 itsdangerous==1.1.0
     # via
     #   flask
     #   flask-wtf
 jinja2==2.11.3
     # via flask
-markupsafe==1.1.1
+markupsafe==2.1.2
     # via
     #   jinja2
+    #   werkzeug
     #   wtforms
 ory-hydra-client==1.7.0
     # via -r requirements.in
@@ -34,7 +35,7 @@ six==1.15.0
     #   python-dateutil
 urllib3==1.26.5
     # via ory-hydra-client
-werkzeug==1.0.1
+werkzeug==2.2.3
     # via flask
 wtforms==2.3.3
     # via flask-wtf
